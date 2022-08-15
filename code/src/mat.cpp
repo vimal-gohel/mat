@@ -1,5 +1,8 @@
 #include "mat.hpp"
 
+// TODO: Refactoring required with appropriate design patterns
+// First version is for common use only
+
 namespace cv
 {
 
@@ -54,14 +57,26 @@ namespace cv
       case CV_32UC2: length = size_.count() * sizeof(uint32_t) * 2; this->data_type_ = 2; this->channels_ = 2; break;
       case CV_32UC3: length = size_.count() * sizeof(uint32_t) * 3; this->data_type_ = 2; this->channels_ = 3; break;
       case CV_32UC4: length = size_.count() * sizeof(uint32_t) * 4; this->data_type_ = 2; this->channels_ = 4; break;
-      case CV_32FC1: length = size_.count() * sizeof(float) * 1; this->data_type_ = 3; this->channels_ = 1; break;
-      case CV_32FC2: length = size_.count() * sizeof(float) * 2; this->data_type_ = 3; this->channels_ = 2; break;
-      case CV_32FC3: length = size_.count() * sizeof(float) * 3; this->data_type_ = 3; this->channels_ = 3; break;
-      case CV_32FC4: length = size_.count() * sizeof(float) * 4; this->data_type_ = 3; this->channels_ = 4; break;
-      case CV_64FC1: length = size_.count() * sizeof(double) * 1; this->data_type_ = 4; this->channels_ = 1; break;
-      case CV_64FC2: length = size_.count() * sizeof(double) * 2; this->data_type_ = 4; this->channels_ = 2; break;
-      case CV_64FC3: length = size_.count() * sizeof(double) * 3; this->data_type_ = 4; this->channels_ = 3; break;
-      case CV_64FC4: length = size_.count() * sizeof(double) * 4; this->data_type_ = 4; this->channels_ = 4; break;
+      case CV_8SC1: length = size_.count() * sizeof(int8_t) * 1; this->data_type_ = 3; this->channels_ = 1; break;
+      case CV_8SC2: length = size_.count() * sizeof(int8_t) * 2; this->data_type_ = 3; this->channels_ = 2; break;
+      case CV_8SC3: length = size_.count() * sizeof(int8_t) * 3; this->data_type_ = 3; this->channels_ = 3; break;
+      case CV_8SC4: length = size_.count() * sizeof(int8_t) * 4; this->data_type_ = 3; this->channels_ = 4; break;
+      case CV_16SC1: length = size_.count() * sizeof(int16_t) * 1; this->data_type_ = 4; this->channels_ = 1; break;
+      case CV_16SC2: length = size_.count() * sizeof(int16_t) * 2; this->data_type_ = 4; this->channels_ = 2; break;
+      case CV_16SC3: length = size_.count() * sizeof(int16_t) * 3; this->data_type_ = 4; this->channels_ = 3; break;
+      case CV_16SC4: length = size_.count() * sizeof(int16_t) * 4; this->data_type_ = 4; this->channels_ = 4; break;
+      case CV_32SC1: length = size_.count() * sizeof(int32_t) * 1; this->data_type_ = 5; this->channels_ = 1; break;
+      case CV_32SC2: length = size_.count() * sizeof(int32_t) * 2; this->data_type_ = 5; this->channels_ = 2; break;
+      case CV_32SC3: length = size_.count() * sizeof(int32_t) * 3; this->data_type_ = 5; this->channels_ = 3; break;
+      case CV_32SC4: length = size_.count() * sizeof(int32_t) * 4; this->data_type_ = 5; this->channels_ = 4; break;
+      case CV_32FC1: length = size_.count() * sizeof(float) * 1; this->data_type_ = 6; this->channels_ = 1; break;
+      case CV_32FC2: length = size_.count() * sizeof(float) * 2; this->data_type_ = 6; this->channels_ = 2; break;
+      case CV_32FC3: length = size_.count() * sizeof(float) * 3; this->data_type_ = 6; this->channels_ = 3; break;
+      case CV_32FC4: length = size_.count() * sizeof(float) * 4; this->data_type_ = 6; this->channels_ = 4; break;
+      case CV_64FC1: length = size_.count() * sizeof(double) * 1; this->data_type_ = 7; this->channels_ = 1; break;
+      case CV_64FC2: length = size_.count() * sizeof(double) * 2; this->data_type_ = 7; this->channels_ = 2; break;
+      case CV_64FC3: length = size_.count() * sizeof(double) * 3; this->data_type_ = 7; this->channels_ = 3; break;
+      case CV_64FC4: length = size_.count() * sizeof(double) * 4; this->data_type_ = 7; this->channels_ = 4; break;
       default:
         throw std::runtime_error("Type not specified");
     }
@@ -164,12 +179,16 @@ namespace cv
 
   Mat Mat::operator+(const Mat& m)
   {
-    if (m.size() != size_ && m.type() != type_)
+    if (m.size() != size_)
     {
       throw std::runtime_error("Addition operation not possible");
     }
 
-    auto mat = Mat(size_, type_);
+    bool is_signed_required = false;
+    if ((m.type() != type_) && ((m.type() >= CV_8S) && (m.type() <= CV_32SC4)))
+      is_signed_required = true;
+
+    auto mat = Mat(size_, is_signed_required ? create_type(data_type_ + 3, channels_) : type_);
 
     if (type_ <= CV_8UC4) {
       add((uint8_t*)&mat.data[0], (uint8_t*)&data[0], (uint8_t*)&m.data[0], size_);
@@ -179,6 +198,15 @@ namespace cv
     }
     else if (type_ <= CV_32UC4) {
       add((uint32_t*)&mat.data[0], (uint32_t*)&data[0], (uint32_t*)&m.data[0], size_);
+    }
+    else if (type_ <= CV_8SC4) {
+      add((int8_t*)&mat.data[0], (int8_t*)&data[0], (int8_t*)&m.data[0], size_);
+    }
+    else if (type_ <= CV_16SC4) {
+      add((int16_t*)&mat.data[0], (int16_t*)&data[0], (int16_t*)&m.data[0], size_);
+    }
+    else if (type_ <= CV_32SC4) {
+      add((int32_t*)&mat.data[0], (int32_t*)&data[0], (int32_t*)&m.data[0], size_);
     }
     else if (type_ <= CV_32FC4) {
       add((float*)&mat.data[0], (float*)&data[0], (float*)&m.data[0], size_);
@@ -192,12 +220,16 @@ namespace cv
 
   Mat Mat::operator-(const Mat& m)
   {
-    if (m.size() != size_ && m.type() != type_)
+    if (m.size() != size_)
     {
       throw std::runtime_error("Subtraction operation not possible");
     }
 
-    auto mat = Mat(size_, type_);
+    bool is_signed_required = false;
+    if (type_ <= CV_32UC4)
+      is_signed_required = true;
+
+    auto mat = Mat(size_, is_signed_required ? create_type(data_type_ + 3, channels_) : type_);
 
     if (type_ <= CV_8UC4) {
       sub((uint8_t*)&mat.data[0], (uint8_t*)&data[0], (uint8_t*)&m.data[0], size_);
@@ -207,6 +239,15 @@ namespace cv
     }
     else if (type_ <= CV_32UC4) {
       sub((uint32_t*)&mat.data[0], (uint32_t*)&data[0], (uint32_t*)&m.data[0], size_);
+    }
+    else if (type_ <= CV_8SC4) {
+      sub((int8_t*)&mat.data[0], (int8_t*)&data[0], (int8_t*)&m.data[0], size_);
+    }
+    else if (type_ <= CV_16SC4) {
+      sub((int16_t*)&mat.data[0], (int16_t*)&data[0], (int16_t*)&m.data[0], size_);
+    }
+    else if (type_ <= CV_32SC4) {
+      sub((int32_t*)&mat.data[0], (int32_t*)&data[0], (int32_t*)&m.data[0], size_);
     }
     else if (type_ <= CV_32FC4) {
       sub((float*)&mat.data[0], (float*)&data[0], (float*)&m.data[0], size_);
@@ -237,6 +278,15 @@ namespace cv
     else if (type_ <= CV_32UC4) {
       mul((uint32_t*)&mat.data[0], (uint32_t*)&data[0], (uint32_t*)&m.data[0], size_, m.size());
     }
+    else if (type_ <= CV_8SC4) {
+      mul((int8_t*)&mat.data[0], (int8_t*)&data[0], (int8_t*)&m.data[0], size_, m.size());
+    }
+    else if (type_ <= CV_16SC4) {
+      mul((int16_t*)&mat.data[0], (int16_t*)&data[0], (int16_t*)&m.data[0], size_, m.size());
+    }
+    else if (type_ <= CV_32SC4) {
+      mul((int32_t*)&mat.data[0], (int32_t*)&data[0], (int32_t*)&m.data[0], size_, m.size());
+    }
     else if (type_ <= CV_32FC4) {
       mul((float*)&mat.data[0], (float*)&data[0], (float*)&m.data[0], size_, m.size());
     }
@@ -265,16 +315,43 @@ namespace cv
   Mat Mat::operator*(const int& scalar)
   {
     if (type_ <= CV_32UC4) {
-      Mat mat(size_, create_type(2, channels_));
+      Mat mat(size_, create_type(scalar > 0 ? 2 : 5, channels_));
 
-      if (type_ <= CV_8UC4) {
-        s_mul((uint32_t *)&mat.data[0], (uint8_t *)&data[0], scalar, size_);
-      }
-      else if (type_ <= CV_16UC4) {
-        s_mul((uint32_t *)&mat.data[0], (uint16_t *)&data[0], scalar, size_);
+      if (scalar > 0) {
+        if (type_ <= CV_8UC4) {
+          s_mul((uint32_t *)&mat.data[0], (uint8_t *)&data[0], scalar, size_);
+        }
+        else if (type_ <= CV_16UC4) {
+          s_mul((uint32_t *)&mat.data[0], (uint16_t *)&data[0], scalar, size_);
+        }
+        else {
+          s_mul((uint32_t *)&mat.data[0], (uint32_t *)&data[0], scalar, size_);
+        }
       }
       else {
-        s_mul((uint32_t *)&mat.data[0], (uint32_t *)&data[0], scalar, size_);
+        if (type_ <= CV_8UC4) {
+          s_mul((int32_t *)&mat.data[0], (uint8_t *)&data[0], scalar, size_);
+        }
+        else if (type_ <= CV_16UC4) {
+          s_mul((int32_t *)&mat.data[0], (uint16_t *)&data[0], scalar, size_);
+        }
+        else {
+          s_mul((int32_t *)&mat.data[0], (uint32_t *)&data[0], scalar, size_);
+        }
+      }
+      return mat;
+    }
+    else if (type_ <= CV_32SC4) {
+      Mat mat(size_, create_type(5, channels_));
+
+      if (type_ <= CV_8SC4) {
+        s_mul((int32_t *)&mat.data[0], (int8_t *)&data[0], scalar, size_);
+      }
+      else if (type_ <= CV_16SC4) {
+        s_mul((int32_t *)&mat.data[0], (int16_t *)&data[0], scalar, size_);
+      }
+      else {
+        s_mul((int32_t *)&mat.data[0], (int32_t *)&data[0], scalar, size_);
       }
       return mat;
     }
@@ -293,7 +370,7 @@ namespace cv
   Mat Mat::operator*(const float& scalar)
   {
     if (type_ <= CV_32UC4) {
-      Mat mat(size_, create_type(3, channels_));
+      Mat mat(size_, create_type(6, channels_));
 
       if (type_ <= CV_8UC4) {
         s_mul((float *)&mat.data[0], (uint8_t *)&data[0], scalar, size_);
@@ -309,6 +386,23 @@ namespace cv
       }
       return mat;
     }
+    else if (type_ <= CV_32SC4) {
+      Mat mat(size_, create_type(6, channels_));
+
+      if (type_ <= CV_8SC4) {
+        s_mul((float *)&mat.data[0], (int8_t *)&data[0], scalar, size_);
+      }
+      else if (type_ <= CV_16SC4) {
+        s_mul((float *)&mat.data[0], (int16_t *)&data[0], scalar, size_);
+      }
+      else if (type_ <= CV_32SC4) {
+        s_mul((float *)&mat.data[0], (int32_t *)&data[0], scalar, size_);
+      }
+      else {
+        s_mul((float *)&mat.data[0], (float *)&data[0], scalar, size_);
+      }
+      return mat;
+    }
     else {
       Mat mat(size_, type_);
       s_mul((double *)&mat.data[0], (double *)&data[0], scalar, size_);
@@ -318,7 +412,7 @@ namespace cv
 
   Mat Mat::operator*(const double& scalar)
   {
-    Mat mat(size_, create_type(4, channels_));
+    Mat mat(size_, create_type(7, channels_));
 
     if (type_ <= CV_8UC4) {
       s_mul((double *)&mat.data[0], (uint8_t *)&data[0], scalar, size_);
@@ -328,6 +422,15 @@ namespace cv
     }
     else if (type_ <= CV_32UC4) {
       s_mul((double *)&mat.data[0], (uint32_t *)&data[0], scalar, size_);
+    }
+    else if (type_ <= CV_8SC4) {
+      s_mul((double *)&mat.data[0], (int8_t *)&data[0], scalar, size_);
+    }
+    else if (type_ <= CV_16SC4) {
+      s_mul((double *)&mat.data[0], (int16_t *)&data[0], scalar, size_);
+    }
+    else if (type_ <= CV_32SC4) {
+      s_mul((double *)&mat.data[0], (int32_t *)&data[0], scalar, size_);
     }
     else if (type_ <= CV_32FC4) {
       s_mul((double *)&mat.data[0], (float *)&data[0], scalar, size_);
@@ -472,7 +575,16 @@ namespace cv
     auto new_size = Size(size_.cols, size_.rows);
     auto m = Mat(new_size, type_, &data[0]);
 
-    if (type_ <= CV_8UC4) {
+    if (type_ <= CV_8SC4) {
+      prime((int8_t *)&m.data[0]);
+    }
+    else if (type_ <= CV_16SC4) {
+      prime((int16_t *)&m.data[0]);
+    }
+    else if (type_ <= CV_32SC4) {
+      prime((int32_t *)&m.data[0]);
+    }
+    else if (type_ <= CV_8UC4) {
       prime((uint8_t *)&m.data[0]);
     }
     else if (type_ <= CV_16UC4) {
@@ -515,7 +627,16 @@ namespace cv
 
   void Mat::print()
   {
-    if (type_ <= CV_8UC4) {
+    if (type_ <= CV_8SC4) {
+      matrix_display((int8_t *)&data[0]);
+    }
+    else if (type_ <= CV_16SC4) {
+      matrix_display((int16_t *)&data[0]);
+    }
+    else if (type_ <= CV_32SC4) {
+      matrix_display((int32_t *)&data[0]);
+    }
+    else if (type_ <= CV_8UC4) {
       matrix_display((uint8_t *)&data[0]);
     }
     else if (type_ <= CV_16UC4) {
